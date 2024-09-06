@@ -1,5 +1,13 @@
 import os
+import sys
 import flask
+from random import choice
+from string import ascii_uppercase
+from db import *
+from common import *
+import threading
+from flask import request
+from multiprocessing import Process
 
 class Listener:
 
@@ -9,7 +17,6 @@ class Listener:
         self.port       = port
         self.ipaddress  = ipaddress
         self.Path       = "data/listeners/{}/".format(self.name)
-        self.keyPath    = "{}key".format(self.Path)
         self.filePath   = "{}files/".format(self.Path)
         self.agentsPath = "{}agents/".format(self.Path)
         self.isRunning  = False
@@ -24,17 +31,6 @@ class Listener:
         if os.path.exists(self.filePath) == False:
             os.mkdir(self.filePath)
 
-        if os.path.exists(self.keyPath) == False:
-
-            key      = generateKey()
-            self.key = key
-
-            with open(self.keyPath, "wt") as f:
-                f.write(key)
-        else:
-            with open(self.keyPath, "rt") as f:
-                self.key = f.read()
-
         ####
         @self.app.route("/reg", methods=['POST'])
         def registerAgent():
@@ -43,7 +39,8 @@ class Listener:
             hostname = flask.request.form.get("name")
             Type     = flask.request.form.get("type")
             success("Agent {} checked in.".format(name))
-            writeToDatabase(agentsDB, Agent(name, self.name, remoteip, hostname, Type, self.key))
+            #TODO Create AgentsManager for agentsDB this is only a workaround
+            #writeToDatabase(ListenersManager.agentsDB, Agent(name, self.name, remoteip, hostname, Type))
             return (name, 200)
 
         ####
@@ -53,7 +50,7 @@ class Listener:
 
                 with open("{}{}/tasks".format(self.agentsPath, name), "r") as f:
                     task = f.read()
-                    clearAgentTasks(name)
+                    #clearAgentTasks(name)
 
                 return(task,200)
             else:
@@ -63,12 +60,18 @@ class Listener:
         @self.app.route("/results/<name>", methods=['POST'])
         def receiveResults(name):
             result = flask.request.form.get("result")
-            displayResults(name, result)
+            #displayResults(name, result)
             return ('',204)
+
+        # Function for debug
+        @self.app.route("/health", methods=['GET'])
+        def health():
+            success("HealthCheck works")
+            return ('I am Alive',200)
 
         ####
         @self.app.route("/download/<name>", methods=['GET'])
-        def sendFile(name):
+        def sendFile(self,name):
             f    = open("{}{}".format(self.filePath, name), "rt")
             data = f.read()
 
@@ -77,29 +80,33 @@ class Listener:
 
     def run(self):
         self.app.logger.disabled = True
-        self.app.run(port=self.port, host=self.ipaddress)
-
-    def setFlag(self):
-        self.flag = 1
+        self.app.run(port=self.port, host=self.ipaddress, debug=True, use_reloader=False )
 
     def start(self):
+        # self.server = Process(target=self.run)
 
-        self.server = Process(target=self.run)
+        # cli = sys.modules['flask.cli']
+        # cli.show_server_banner = lambda *x: None
+
+        # self.daemon = threading.Thread(name = self.name,
+        #                                target = self.server.start,
+        #                                args = ())
+        # self.daemon.daemon = True
+        # self.daemon.start()
+
+        # self.isRunning = True
 
         cli = sys.modules['flask.cli']
         cli.show_server_banner = lambda *x: None
 
-        self.daemon = threading.Thread(name = self.name,
-                                       target = self.server.start,
-                                       args = ())
-        self.daemon.daemon = True
-        self.daemon.start()
-
+        self.server_thread = threading.Thread(target=self.run)
+        self.server_thread.daemon = True
+        self.server_thread.start()
         self.isRunning = True
 
     def stop(self):
-
-        self.server.terminate()
-        self.server    = None
-        self.daemon    = None
-        self.isRunning = False
+        pass
+        # self.server.terminate()
+        # self.server    = None
+        # self.daemon    = None
+        # self.isRunning = False
