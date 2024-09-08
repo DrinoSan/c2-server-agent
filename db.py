@@ -15,12 +15,10 @@ def readFromDatabase(database):
     return data
 
 def writeToDatabase(database,newData):
-
     with open(database, "ab") as d:
         pickle.dump(newData, d, pickle.HIGHEST_PROTOCOL)
 
 def removeFromDatabase(database,name):
-
     data = readFromDatabase(database)
     final = OrderedDict()
 
