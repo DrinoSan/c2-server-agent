@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import netifaces
 
+import agentManager
 import db
 from common import *
 from listener import Listener
@@ -9,8 +10,9 @@ class ListenersManager:
     listenersDB = "data/databases/listeners.db"
     agentsDB    = "data/databases/agents.db"
 
-    def __init__(self):
+    def __init__(self, agentManager):
         self.listeners = OrderedDict()
+        self.agentManager = agentManager
 
     def getListenersFromDB(self):
         return db.readFromDatabase(self.listenersDB)
@@ -85,7 +87,7 @@ class ListenersManager:
             print(f"Listener {name} already exists")
             return 0
 
-        self.listeners[name] = Listener(name, port, ipv4)
+        self.listeners[name] = Listener(name, port, ipv4, agentManager=self.agentManager, listenerManager=self)
         progress("Starting listener {} on {}:{}.".format(name, ipv4, str(port)))
 
         try:
@@ -98,3 +100,67 @@ class ListenersManager:
             return 0
 
         print(f"Starting Listener with name {args[0]} on port {args[1]} on interface {args[2]}")
+
+
+    def saveListeners(self):
+        if len(self.listeners) == 0:
+            db.clearDatabase(self.listenersDB)
+        else:
+            data = OrderedDict()
+            db.clearDatabase(self.listenersDB)
+
+            for listener in self.listeners:
+
+                if self.listeners[listener].isRunning == True:
+
+                    name       = self.listeners[listener].name
+                    port       = str(self.listeners[listener].port)
+                    ipaddress  = self.listeners[listener].ipaddress
+                    flag       = "1"
+                    data[name] = name + " " + port + " " + ipaddress + " " + flag
+
+                    self.listeners[listener].stop()
+                else:
+                    name       = self.listeners[listener].name
+                    port       = str(self.listeners[listener].port)
+                    ipaddress  = self.listeners[listener].ipaddress
+                    flag       = "0"
+                    data[name] = name + " " + port + " " + ipaddress + " " + flag
+
+            error(f"Writing to listenersdb listenerName current data Kyes {data.keys}")
+            db.writeToDatabase(self.listenersDB, data)
+
+    def loadListeners(self):
+        if os.path.exists(self.listenersDB):
+
+            data = db.readFromDatabase(self.listenersDB)
+            if len(data) == 0:
+                return
+
+            temp = data[0]
+
+            for listener in temp:
+
+                listener = temp[listener].split()
+
+                name      = listener[0]
+                port      = int(listener[1])
+                ipaddress = listener[2]
+                flag      = listener[3]
+
+                self.listeners[name] = Listener(name, port, ipaddress, self.agentManager, self)
+
+                if flag == "1":
+                    self.listeners[name].start()
+
+    def displayResults(self, name, result):
+        if self.agentManager.isValidAgent(name,0) == True:
+            if result == "":
+                success("Agent {} completed task.".format(name))
+            else:
+                success("Agent {} returned results:".format(name))
+                print(result)
+
+    def clearAgentTasks(self, name):
+        if self.agentManager.isValidAgent(name, 0):
+            self.agentManager.agents[name].clearTasks()

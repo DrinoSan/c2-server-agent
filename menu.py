@@ -3,7 +3,7 @@ import readline
 from os import system
 from collections import OrderedDict
 from common import *
-from listenerManager import ListenersManager
+from managers import agentManager, listenerManager
 
 
 class AutoComplete(object):
@@ -79,6 +79,7 @@ class Menu:
 
         return command, args
 
+#------------------------------------------------------------------------------
 ############################
 ###### LISTENERS AREA ######
 ############################
@@ -91,8 +92,8 @@ def stop_listener(args):
     listenerManager.stop_listener(args)
 def remove_listener(args):
     print("Called remove listener")
-    pass
 
+#------------------------------------------------------------------------------
 def listeners_menu(command, args):
     if command == "help":
         Lmenu.showHelp()
@@ -109,12 +110,41 @@ def listeners_menu(command, args):
     elif command == "remove":
         remove_listener(args)
 
+#------------------------------------------------------------------------------
+############################
+###### AGENTS    AREA ######
+############################
+def viewAgents():
+    agentManager.viewAgents()
+def removeAgent(args):
+    agentManager.removeAgent(args)
+def renameAgent(args):
+    agentManager.renameAgent(args)
+def interactWithAgent(args):
+    agentManager.interactWithAgent(args)
 
+#------------------------------------------------------------------------------
+def agents_menu(command, args):
+    if command == "help":
+        Amenu.showHelp()
+    elif command == "home":
+        home()
+    elif command == "exit":
+        Exit()
+    if command == "list":
+        viewAgents()
+    elif command == "remove":
+        removeAgent(args)
+    elif command == "rename":
+        renameAgent(args)
+    elif command == "interact":
+        interactWithAgent(args)
+
+
+#------------------------------------------------------------------------------
 def listeners_helper():
     Lmenu.clearScreen()
-
     while True:
-
         try:
             command, args = Lmenu.parse()
         except:
@@ -125,6 +155,22 @@ def listeners_helper():
         else:
             listeners_menu(command, args)
 
+#------------------------------------------------------------------------------
+def agents_helper():
+    Amenu.clearScreen()
+    while True:
+        try:
+            command, args = Amenu.parse()
+        except:
+            continue
+
+        if command not in agentCommands:
+            error("Invalid command.")
+        else:
+            agents_menu(command, args)
+
+
+#------------------------------------------------------------------------------
 def home_menu(command, args):
     if command == "help":
         Hmenu.showHelp()
@@ -133,8 +179,7 @@ def home_menu(command, args):
     elif command == "exit":
         Exit()
     elif command == "agents":
-        print("Trying to acces agents menu")
-        #agents_menu()
+        agents_helper()
     elif command == "listeners":
         listeners_helper()
     elif command == "payloads":
@@ -142,15 +187,16 @@ def home_menu(command, args):
         #payloads_menu()
 
 
+#------------------------------------------------------------------------------
 def Exit():
-    # saveListeners
+    listenerManager.saveListeners()
     exit()
 
+#------------------------------------------------------------------------------
 def home():
     Hmenu.clearScreen()
 
     while True:
-
         # I need to continue on except to make sure the process is only closed with "exit" to save into db
         try:
             command, args = Hmenu.parse()
@@ -163,15 +209,20 @@ def home():
             home_menu(command, args)
 
 
+#------------------------------------------------------------------------------
 Hmenu = Menu("c2")
 Lmenu = Menu("listeners")
+Amenu = Menu("agents")
 
+
+#------------------------------------------------------------------------------
 Hmenu.register_command("listeners", "Manage listeners.", "")
 Hmenu.register_command("agents", "Manage active agents.", "")
 Hmenu.register_command("payloads", "Generate payloads.", "")
 Hmenu.update_command()
 homeCommands = Hmenu.Commands
 
+#------------------------------------------------------------------------------
 Lmenu.register_command("list", "List active listeners.", "")
 Lmenu.register_command("start", "Start a listener.", "<name> <port> <interface> | <name>")
 Lmenu.register_command("stop", "Stop an active listener.","<name>")
@@ -179,5 +230,10 @@ Lmenu.register_command("remove", "Remove a listener.", "<name>")
 Lmenu.update_command()
 listenersCommands = Lmenu.Commands
 
-
-listenerManager = ListenersManager()
+#------------------------------------------------------------------------------
+Amenu.register_command("list", "List active agents.", "")
+Amenu.register_command("interact", "Interact with an agent.", "<name>")
+Amenu.register_command("rename", "Rename agent.", "<agent> <new name>")
+Amenu.register_command("remove", "Remove an agent.", "<name>")
+Amenu.update_command()
+agentCommands = Amenu.Commands

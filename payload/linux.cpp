@@ -265,7 +265,7 @@ void daemonize( const std::string& pathToMoveBinary )
     if ( pid > 0 )
     {
         // Parent process
-        exit( EXIT_SUCCESS ); // Killing the parent we dont need you anymore
+        exit( EXIT_SUCCESS );   // Killing the parent we dont need you anymore
     }
 
     // Child process
@@ -285,11 +285,13 @@ void daemonize( const std::string& pathToMoveBinary )
     if ( pid > 0 )
     {
         // Parent process
-        exit( EXIT_SUCCESS ); // The old child process is now the parent and we also dont need you anymore
+        exit( EXIT_SUCCESS );   // The old child process is now the parent and
+                                // we also dont need you anymore
     }
 
     // Change the working directory to root
-    // Needed to make sure it is not in a mounted dir which can couse trouble if unmounted
+    // Needed to make sure it is not in a mounted dir which can couse trouble if
+    // unmounted
     if ( chdir( "/" ) < 0 )
     {
         std::cerr << "Failed to change directory to root!" << std::endl;
@@ -411,8 +413,8 @@ int main( int argc, char* argv[] )
 
     //    ifs.close();
 
-    ip   = "";
     // ip   = "";
+    ip   = "";
     port = std::stoi( "9999" );
 
     std::string hname  = "";
@@ -432,9 +434,7 @@ int main( int argc, char* argv[] )
 
     while ( true )
     {
-        std::cout << "NAME FOR GET: " << name << '\n';
         std::string task = Get( ip, port, "/tasks/" + name );
-        std::cout << "TASK: " << task << '\n';
 
         if ( task != "" )
         {

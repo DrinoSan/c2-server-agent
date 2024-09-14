@@ -3,6 +3,7 @@ import logging
 import os
 
 from menu import home
+from menu import listenerManager
 
 def main():
 
@@ -18,8 +19,8 @@ def main():
 	log = logging.getLogger('werkzeug')
 	log.disabled = True
 
-	#loadListeners()
-	#uagents()
+	listenerManager.loadListeners()
+	listenerManager.agentManager.updateAgents()
 
 	home()
 

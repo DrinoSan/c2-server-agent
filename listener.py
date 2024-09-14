@@ -8,19 +8,23 @@ from common import *
 import threading
 from flask import request
 from multiprocessing import Process
+from agent import Agent
+
+agentsDB    = "data/databases/agents.db"
 
 class Listener:
+    def __init__(self, name, port, ipaddress, agentManager, listenerManager):
 
-    def __init__(self, name, port, ipaddress):
-
-        self.name       = name
-        self.port       = port
-        self.ipaddress  = ipaddress
-        self.Path       = "data/listeners/{}/".format(self.name)
-        self.filePath   = "{}files/".format(self.Path)
-        self.agentsPath = "{}agents/".format(self.Path)
-        self.isRunning  = False
-        self.app        = flask.Flask(__name__)
+        self.name            = name
+        self.port            = port
+        self.ipaddress       = ipaddress
+        self.Path            = "data/listeners/{}/".format(self.name)
+        self.filePath        = "{}files/".format(self.Path)
+        self.agentsPath      = "{}agents/".format(self.Path)
+        self.isRunning       = False
+        self.app             = flask.Flask(__name__)
+        self.agentManager    = agentManager
+        self.listenerManager = listenerManager
 
         if os.path.exists(self.Path) == False:
             os.mkdir(self.Path)
@@ -40,7 +44,8 @@ class Listener:
             Type     = flask.request.form.get("type")
             success("Agent {} checked in.".format(name))
             #TODO Create AgentsManager for agentsDB this is only a workaround
-            #writeToDatabase(ListenersManager.agentsDB, Agent(name, self.name, remoteip, hostname, Type))
+            self.agentManager.addAgent(Agent(name, self.name, remoteip, hostname, Type))
+            writeToDatabase(agentsDB, Agent(name, self.name, remoteip, hostname, Type))
             return (name, 200)
 
         ####
@@ -50,7 +55,7 @@ class Listener:
 
                 with open("{}{}/tasks".format(self.agentsPath, name), "r") as f:
                     task = f.read()
-                    #clearAgentTasks(name)
+                    self.listenerManager.clearAgentTasks(name)
 
                 return(task,200)
             else:
@@ -60,7 +65,7 @@ class Listener:
         @self.app.route("/results/<name>", methods=['POST'])
         def receiveResults(name):
             result = flask.request.form.get("result")
-            #displayResults(name, result)
+            self.listenerManager.displayResults(name, result)
             return ('',204)
 
         # Function for debug
@@ -109,4 +114,4 @@ class Listener:
         # self.server.terminate()
         # self.server    = None
         # self.daemon    = None
-        # self.isRunning = False
+        self.isRunning = False
